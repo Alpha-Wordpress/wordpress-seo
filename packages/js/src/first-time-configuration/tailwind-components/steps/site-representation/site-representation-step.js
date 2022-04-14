@@ -30,8 +30,8 @@ export default function SiteRepresentationStep( { onOrganizationOrPersonChange, 
 	} );
 
 	return <Fragment>
-		{  window.wpseoWorkoutsData.configuration.knowledgeGraphMessage &&  <Alert type="warning">
-			{  window.wpseoWorkoutsData.configuration.knowledgeGraphMessage }
+		{  window.wpseoFirstTimeConfigurationData.knowledgeGraphMessage &&  <Alert type="warning">
+			{  window.wpseoFirstTimeConfigurationData.knowledgeGraphMessage }
 		</Alert> }
 		<p className="yst-text-sm yst-whitespace-pre-line yst-mb-6">
 			{
@@ -51,7 +51,7 @@ export default function SiteRepresentationStep( { onOrganizationOrPersonChange, 
 			}
 		</p>
 		{
-			window.wpseoWorkoutsData.configuration.shouldForceCompany === 0 && <SingleSelect
+			window.wpseoFirstTimeConfigurationData.shouldForceCompany === 0 && <SingleSelect
 				id="organization-person-select"
 				htmlFor="organization-person-select"
 				name="organization"
@@ -62,7 +62,7 @@ export default function SiteRepresentationStep( { onOrganizationOrPersonChange, 
 			/>
 		}
 		{
-			window.wpseoWorkoutsData.configuration.shouldForceCompany === 1 && <TextInput
+			window.wpseoFirstTimeConfigurationData.shouldForceCompany === 1 && <TextInput
 				id="organization-forced-readonly-text"
 				name="organization"
 				label={ __( "Does your site represent an Organization or Person?", "wordpress-seo" ) }

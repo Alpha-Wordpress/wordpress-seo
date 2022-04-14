@@ -54,7 +54,7 @@ export default function PersonalPreferencesStep( { state, setTracking } ) {
 			}</i>
 		</p>
 		<br />
-		<NewsletterSignup gdprLink={ window.wpseoWorkoutsData.configuration.shortlinks.gdpr } />
+		<NewsletterSignup gdprLink={ window.wpseoFirstTimeConfigurationData.shortlinks.gdpr } />
 	</Fragment>;
 }
 
