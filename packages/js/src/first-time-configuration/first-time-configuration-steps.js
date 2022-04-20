@@ -1,5 +1,5 @@
+/* global wpseoFirstTimeConfigurationData */
 import apiFetch from "@wordpress/api-fetch";
-import { compose } from "@wordpress/compose";
 import { useCallback, useReducer, useState, useEffect, Fragment } from "@wordpress/element";
 import { __, sprintf } from "@wordpress/i18n";
 import { cloneDeep, uniq } from "lodash";
@@ -10,7 +10,6 @@ import { addLinkToString } from "../helpers/stringHelpers.js";
 import SocialProfilesStep from "./tailwind-components/steps/social-profiles/social-profiles-step";
 import Stepper, { Step } from "./tailwind-components/Stepper";
 import { ContinueButton, EditButton, ConfigurationStepButtons } from "./tailwind-components/ConfigurationStepperButtons";
-import { STEPS } from "./config";
 import { getInitialActiveStepIndex } from "./stepper-helper";
 import IndexationStep from "./tailwind-components/steps/indexation/indexation-step";
 import SiteRepresentationStep from "./tailwind-components/steps/site-representation/site-representation-step";
@@ -20,6 +19,13 @@ window.wpseoScriptData = window.wpseoScriptData || {};
 window.wpseoScriptData.searchAppearance = {
 	...window.wpseoScriptData.searchAppearance,
 	userEditUrl: "/wp-admin/user-edit.php?user_id={user_id}",
+};
+
+const STEPS = {
+	optimizeSeoData: "optimizeSeoData",
+	siteRepresentation: "siteRepresentation",
+	socialProfiles: "socialProfiles",
+	personalPreferences: "personalPreferences",
 };
 
 /**
@@ -277,6 +283,15 @@ async function updateTracking( state ) {
 	return await response.json;
 }
 
+async function saveFinishedSteps( finishedSteps ) {
+	const response = await apiFetch( {
+		path: "yoast/v1/configuration/save_configuration_state",
+		method: "POST",
+		data: { finishedSteps },
+	} );
+	return await response.json;
+}
+
 /**
  * Example Finish step.
  *
@@ -320,15 +335,19 @@ function calculateInitialState( windowObject, isStepFinished ) {
  * @returns {WPElement} The FirstTimeConfigurationSteps component.
  */
 export default function FirstTimeConfigurationSteps() {
-	const [ finishedSteps, setFinishedSteps ] = useState( [] );
+	const [ finishedSteps, setFinishedSteps ] = useState( wpseoFirstTimeConfigurationData.finishedSteps );
 
-	const isStepFinished = useCallback( ( stepIndex ) => {
-		return finishedSteps.includes( stepIndex );
+	const isStepFinished = useCallback( ( stepId ) => {
+		return finishedSteps.includes( stepId );
 	}, [ finishedSteps ] );
 
-	const finishSteps = useCallback( ( stepNumber ) => {
-		setFinishedSteps( prevState => uniq( [ ...prevState, stepNumber ] ) );
+	const finishSteps = useCallback( ( stepId ) => {
+		setFinishedSteps( prevState => uniq( [ ...prevState, stepId ] ) );
 	}, [ setFinishedSteps ] );
+
+	useEffect( () => {
+		saveFinishedSteps( finishedSteps );
+	}, [ finishedSteps ] );
 
 	const [ state, dispatch ] = useReducer( configurationWorkoutReducer, {
 		...calculateInitialState( window.wpseoFirstTimeConfigurationData, isStepFinished ),
@@ -358,9 +377,9 @@ export default function FirstTimeConfigurationSteps() {
 		dispatch( { type: "SET_STEP_SAVED", payload: stepNumber } );
 	};
 
-	const isStep2Finished = isStepFinished( 2 );
-	const isStep3Finished = isStepFinished( 3 );
-	const isStep4Finished = isStepFinished( 4 );
+	const isStep2Finished = isStepFinished( STEPS.siteRepresentation );
+	const isStep3Finished = isStepFinished( STEPS.socialProfiles );
+	const isStep4Finished = isStepFinished( STEPS.personalPreferences );
 
 	const setTracking = useCallback( ( value ) => {
 		dispatch( { type: "SET_TRACKING", payload: parseInt( value, 10 ) } );
@@ -392,7 +411,7 @@ export default function FirstTimeConfigurationSteps() {
 		setSiteRepresentationEmpty( state.companyOrPerson === "emptyChoice" || isCompanyAndEmpty || isPersonAndEmpty );
 		updateSiteRepresentation( state )
 			.then( () => setStepIsSaved( 2 ) )
-			.then( () => finishSteps( 2 ) );
+			.then( () => finishSteps( STEPS.siteRepresentation ) );
 		return true;
 	}
 
@@ -410,7 +429,7 @@ export default function FirstTimeConfigurationSteps() {
 				.then( () => setStepIsSaved( 3 ) )
 				.then( () => {
 					setErrorFields( [] );
-					finishSteps( 3 );
+					finishSteps( STEPS.socialProfiles );
 				} )
 				.then( () => {
 					return true;
@@ -430,7 +449,7 @@ export default function FirstTimeConfigurationSteps() {
 			.then( () => setStepIsSaved( 3 ) )
 			.then( () => {
 				setErrorFields( [] );
-				finishSteps( 3 );
+				finishSteps( STEPS.socialProfiles );
 			} )
 			.then( () => {
 				return true;
@@ -450,10 +469,10 @@ export default function FirstTimeConfigurationSteps() {
 	 *
 	 * @returns {void}
 	 */
-	function updateOnFinishEnableTracking() {
+	function updateOnFinishPersonalPreferences() {
 		return updateTracking( state )
 			.then( () => setStepIsSaved( 4 ) )
-			.then( () => finishSteps( 4 ) )
+			.then( () => finishSteps( STEPS.personalPreferences ) )
 			.then( () => {
 				return true;
 			} );
@@ -471,15 +490,15 @@ export default function FirstTimeConfigurationSteps() {
 		isStep4Finished,
 	].every( Boolean );
 
-	const [ isIndexationStepFinished, setIndexationStepFinished ] = useState( isStepFinished( 2 ) );
+	const [ isIndexationStepFinished, setIndexationStepFinished ] = useState( isStepFinished( STEPS.siteRepresentation ) );
 
 	/* Duplicate site representation, because in reality, the first step cannot be saved.
 	It's considered "finished" once at least the site representation has been done. */
 	const savedSteps = [
 		isIndexationStepFinished,
-		isStepFinished( 2 ),
-		isStepFinished( 3 ),
-		isStepFinished( 4 ),
+		isStepFinished( STEPS.siteRepresentation ),
+		isStepFinished( STEPS.socialProfiles ),
+		isStepFinished( STEPS.personalPreferences ),
 		isStepperFinished,
 	];
 
@@ -646,7 +665,7 @@ export default function FirstTimeConfigurationSteps() {
 						</Step.Header>
 						<Step.Content>
 							<PersonalPreferencesStep state={ state } setTracking={ setTracking } isTrackingOptionSelected={ isTrackingOptionSelected } />
-							<ConfigurationStepButtons stepperFinishedOnce={ stepperFinishedOnce } saveFunction={ updateOnFinishEnableTracking } setEditState={ setIsStepBeingEdited } />
+							<ConfigurationStepButtons stepperFinishedOnce={ stepperFinishedOnce } saveFunction={ updateOnFinishPersonalPreferences } setEditState={ setIsStepBeingEdited } />
 						</Step.Content>
 					</Step>
 					<Step>
